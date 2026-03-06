@@ -1,0 +1,28 @@
+{
+  "name": "express_server",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "Sujal Kumar Saini",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon index.js"
+  },
+  "dependencies": {
+    "@clerk/backend": "^3.0.1",
+    "@clerk/express": "^2.0.1",
+    "argon2": "^0.44.0",
+    "axios": "^1.13.5",
+    "cloudinary": "^2.9.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.2.2",
+    "nodemon": "^3.1.14"
+  }
+}
