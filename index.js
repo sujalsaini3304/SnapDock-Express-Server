@@ -47,9 +47,9 @@ app.use(clerkMiddleware({
 
 
 
-// app.get("/", (req, res) => {
-//   res.json({ message: "Server started" });
-// });
+app.get("/", (req, res) => {
+  res.json({ message: "Server started" });
+});
 
 app.use("/api", router);
 
