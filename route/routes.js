@@ -6,6 +6,7 @@ import cloudinary from "../config/cloudinary.js";
 import { uploadLimiter } from "../middleware/rateLimit.middleware.js";
 import { Image } from "../model/model.js";
 import { encrypt, decrypt } from "../utils/crypto.js";
+import connectDB from "../config/db.js";
 
 const router = express.Router();
 dotenv.config({
@@ -50,6 +51,7 @@ router.get("/ping", (req, res) => {
 */
 router.get("/images", async (req, res) => {
   try {
+    await connectDB();
     const payload = await verifyBearerToken(req);
     if (!payload) {
       return res.status(401).json({ success: false, message: "Unauthorized" });
@@ -106,6 +108,7 @@ router.get("/images", async (req, res) => {
 // ===================================== Image upload Route ==================================
 router.post("/images/save", async (req, res) => {
   try {
+    await connectDB();
     const payload = await verifyBearerToken(req);
     if (!payload) {
       return res.status(401).json({ message: "Unauthorized" });
@@ -149,7 +152,6 @@ router.post("/images/save", async (req, res) => {
 
 // ===================================== Signature Route ==================================
 router.get("/signature", uploadLimiter, async (req, res) => {
-
   const payload = await verifyBearerToken(req);
   if (!payload) {
     return res.status(401).json({ message: "Unauthorized" });
@@ -187,6 +189,7 @@ router.get("/signature", uploadLimiter, async (req, res) => {
 // ===================================== Delete Images Route ==================================
 router.delete("/images", async (req, res) => {
   try {
+    await connectDB();
     const payload = await verifyBearerToken(req);
     if (!payload) {
       return res.status(401).json({ message: "Unauthorized" });
@@ -243,6 +246,7 @@ router.delete("/images", async (req, res) => {
 // ===================================== Delete Account Route ==================================
 router.delete("/account", async (req, res) => {
   try {
+    await connectDB();
     const payload = await verifyBearerToken(req);
     if (!payload) {
       return res.status(401).json({ success: false, message: "Unauthorized" });
@@ -258,13 +262,13 @@ router.delete("/account", async (req, res) => {
     if (imageCount > 0) {
       try {
         const folderPath = `SnapDock/data/${userId}`;
-        
+
         // Delete all resources in the folder
         await cloudinary.api.delete_resources_by_prefix(folderPath);
-        
+
         // Delete the folder itself
         await cloudinary.api.delete_folder(folderPath);
-        
+
         console.log(`Deleted Cloudinary folder: ${folderPath}`);
       } catch (cloudinaryError) {
         console.error("Cloudinary deletion error:", cloudinaryError.message);
@@ -281,9 +285,9 @@ router.delete("/account", async (req, res) => {
       console.log(`Deleted Clerk user: ${userId}`);
     } catch (clerkError) {
       console.error("Clerk user deletion error:", clerkError.message);
-      return res.status(500).json({ 
-        success: false, 
-        message: "Failed to delete user account from authentication system" 
+      return res.status(500).json({
+        success: false,
+        message: "Failed to delete user account from authentication system"
       });
     }
 
