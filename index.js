@@ -2,7 +2,6 @@ import express from "express";
 import router from "./route/routes.js";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
-import { clerkMiddleware } from "@clerk/express";
 import cors from "cors";
 import connectDB from "./config/db.js";
 
@@ -31,20 +30,6 @@ app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 connectDB()
-
-app.use(clerkMiddleware({
-  publishableKey: process.env.CLERK_PUBLISHABLE_KEY,
-  secretKey: process.env.CLERK_SECRET_KEY,
-  authorizedParties: [
-    process.env.TRUSTED_ENDPOINT
-
-    // For development and debug only
-    // "http://localhost:5173",
-    // /\.trycloudflare\.com$/ // Allow any Cloudflare tunnel URL
-
-  ],
-}));
-
 
 
 app.get("/", (req, res) => {

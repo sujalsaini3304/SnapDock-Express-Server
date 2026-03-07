@@ -1,12 +1,11 @@
 import express from "express";
 import dotenv from "dotenv";
-import { verifyToken } from "@clerk/backend";
-import { clerkClient } from "@clerk/express";
 import cloudinary from "../config/cloudinary.js";
 import { uploadLimiter } from "../middleware/rateLimit.middleware.js";
 import { Image } from "../model/model.js";
 import { encrypt, decrypt } from "../utils/crypto.js";
 import connectDB from "../config/db.js";
+import admin from "../firebaseAdmin.config.js";
 
 const router = express.Router();
 dotenv.config({
@@ -14,31 +13,28 @@ dotenv.config({
 })
 
 
-
-// Helper: verify Bearer token (bypasses dev-mode cookie handshake, works cross-origin)
-// Returns the full JWT payload (sub = userId, email, userId from SnapDock template claims)
 const verifyBearerToken = async (req) => {
   const authHeader = req.headers.authorization;
+
   if (!authHeader?.startsWith("Bearer ")) return null;
-  const token = authHeader.slice(7);
+
+  const token = authHeader.split("Bearer ")[1];
+
   try {
-    const payload = await verifyToken(token, {
-      secretKey: process.env.CLERK_SECRET_KEY,
-      authorizedParties: [
-        process.env.TRUSTED_ENDPOINT
+    const decodedToken = await admin.auth().verifyIdToken(token);
 
-        // For development only
-        // "http://localhost:5173",
-
-      ],
-      clockSkewInMs: 30000,
-    });
-    return payload ?? null;
+    return {
+      sub: decodedToken.uid,
+      email: decodedToken.email || null,
+    };
   } catch (err) {
-    console.log("[verifyBearerToken] failed:", err.message);
+    console.log("Firebase verify failed:", err.message);
     return null;
   }
 };
+
+
+
 
 router.get("/ping", (req, res) => {
   res.json({ message: "pong" });
@@ -281,7 +277,8 @@ router.delete("/account", async (req, res) => {
 
     // 4. Delete user from Clerk
     try {
-      await clerkClient.users.deleteUser(userId);
+      // await clerkClient.users.deleteUser(userId);
+      await admin.auth().deleteUser(userId);
       console.log(`Deleted Clerk user: ${userId}`);
     } catch (clerkError) {
       console.error("Clerk user deletion error:", clerkError.message);
