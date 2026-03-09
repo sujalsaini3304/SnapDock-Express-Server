@@ -15,12 +15,12 @@ dotenv.config({
 // const SIGNED_URL_TTL_SECONDS = 60;
 
 const buildExpiringAuthenticatedUrl = (publicId, format = "jpg") => {
-  const expiresAt = Math.floor(Date.now() / 1000) + process.env.SIGNED_URL_TTL_SECONDS;
+  const expiresAt = Math.floor(Date.now() / 1000) + parseInt(process.env.SIGNED_URL_TTL_SECONDS || "60");
 
-  // private_download_url enforces expires_at and works with authenticated assets
+  // private_download_url enforces expires_at and works with private assets
   const url = cloudinary.utils.private_download_url(publicId, format, {
     resource_type: "image",
-    type: "authenticated",
+    type: "private", // Changed from "authenticated" to "private" for true access control
     expires_at: expiresAt,
     attachment: false,
   });
@@ -182,7 +182,7 @@ router.get("/signature", uploadLimiter, async (req, res) => {
   const timestamp = Math.round(Date.now() / 1000);
   const folder = `SnapDock/data/${userId}/images`;
   const transformation = "f_auto,q_auto:best,w_2000";
-  const type = "authenticated";
+  const type = "private"; // Changed from "authenticated" to "private" for true access control
 
   const signature = cloudinary.utils.api_sign_request(
     {
@@ -241,7 +241,7 @@ router.delete("/images", async (req, res) => {
       try {
         await cloudinary.api.delete_resources(publicIds, {
           resource_type: "image",
-          type: "authenticated",
+          type: "private", // Changed from "authenticated" to "private"
         });
       } catch (err) {
         console.error("Cloudinary delete error:", err.message);
@@ -293,7 +293,7 @@ router.delete("/account", async (req, res) => {
         // Delete all resources in the folder
         await cloudinary.api.delete_resources_by_prefix(folderPath, {
           resource_type: "image",
-          type: "authenticated",
+          type: "private", // Changed from "authenticated" to "private"
         });
 
         // Delete the folder itself
