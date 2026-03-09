@@ -12,6 +12,22 @@ dotenv.config({
   path: ".env"
 })
 
+// const SIGNED_URL_TTL_SECONDS = 60;
+
+const buildExpiringAuthenticatedUrl = (publicId, format = "jpg") => {
+  const expiresAt = Math.floor(Date.now() / 1000) + process.env.SIGNED_URL_TTL_SECONDS;
+
+  // private_download_url enforces expires_at and works with authenticated assets
+  const url = cloudinary.utils.private_download_url(publicId, format, {
+    resource_type: "image",
+    type: "authenticated",
+    expires_at: expiresAt,
+    attachment: false,
+  });
+
+  return { url, expiresAt };
+};
+
 
 const verifyBearerToken = async (req) => {
   const authHeader = req.headers.authorization;
@@ -74,13 +90,22 @@ router.get("/images", async (req, res) => {
       catch (err) { console.error("Decrypt error:", err.message); return null; }
     };
 
-    const data = images.map((item) => ({
-      _id: item._id,
-      url: safeDecrypt(item.url),
-      publicId: safeDecrypt(item.publicId),
-      createdAt: item.createdAt,
-      updatedAt: item.updatedAt,
-    }));
+    const data = images.map((item) => {
+      const decryptedPublicId = safeDecrypt(item.publicId);
+      const signed = decryptedPublicId
+        ? buildExpiringAuthenticatedUrl(decryptedPublicId, item.format || "jpg")
+        : null;
+
+      return {
+        _id: item._id,
+        // Returns a one-minute expiring authenticated URL.
+        url: signed?.url || null,
+        publicId: decryptedPublicId,
+        urlExpiresAt: signed?.expiresAt || null,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+      };
+    });
 
     return res.json({
       success: true,
@@ -157,11 +182,13 @@ router.get("/signature", uploadLimiter, async (req, res) => {
   const timestamp = Math.round(Date.now() / 1000);
   const folder = `SnapDock/data/${userId}/images`;
   const transformation = "f_auto,q_auto:best,w_2000";
+  const type = "authenticated";
 
   const signature = cloudinary.utils.api_sign_request(
     {
       timestamp,
       folder,
+      type,
       allowed_formats: "jpg,png,jpeg,webp",
       transformation,
     },
@@ -174,6 +201,7 @@ router.get("/signature", uploadLimiter, async (req, res) => {
     apiKey: process.env.CLOUDINARY_API_KEY,
     cloudName: process.env.CLOUDINARY_CLOUD_NAME,
     folder,
+    type,
     transformation,
   });
 
@@ -211,7 +239,10 @@ router.delete("/images", async (req, res) => {
 
     if (publicIds.length > 0) {
       try {
-        await cloudinary.api.delete_resources(publicIds);
+        await cloudinary.api.delete_resources(publicIds, {
+          resource_type: "image",
+          type: "authenticated",
+        });
       } catch (err) {
         console.error("Cloudinary delete error:", err.message);
         // Continue to delete from DB even if Cloudinary fails
@@ -260,7 +291,10 @@ router.delete("/account", async (req, res) => {
         const folderPath = `SnapDock/data/${userId}`;
 
         // Delete all resources in the folder
-        await cloudinary.api.delete_resources_by_prefix(folderPath);
+        await cloudinary.api.delete_resources_by_prefix(folderPath, {
+          resource_type: "image",
+          type: "authenticated",
+        });
 
         // Delete the folder itself
         await cloudinary.api.delete_folder(folderPath);
