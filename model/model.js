@@ -5,13 +5,11 @@ const imageSchema = new mongoose.Schema(
     userId: {
       type: String,
       required: true,
-      index: true
     },
 
     email: {
       type: String,
       required: true,
-      index: true
     },
 
     publicId: {
@@ -35,6 +33,11 @@ const imageSchema = new mongoose.Schema(
   }
 );
 
+// Compound index — covers the main query pattern:
+//   Image.find({ userId }).sort({ createdAt: -1 })
+// MongoDB uses this single index for BOTH filtering and sorting.
+// Replaces the two separate indexes on userId and email.
+imageSchema.index({ userId: 1, createdAt: -1 });
 
 const Image = mongoose.models.Image || mongoose.model("Image", imageSchema);
 

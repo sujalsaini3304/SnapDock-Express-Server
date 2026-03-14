@@ -4,20 +4,13 @@ import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 
-
 dotenv.config({ path: ".env" });
 
 const app = express();
 
-
 app.set("trust proxy", 1);
-// app.use((req, res, next) => {
-//   console.log("Headers Received:", req.headers);
-//   next();
-// });
 
-
-// Restrict CORS in production and allow localhost during development.
+// ── CORS ──
 const allowedOrigins = [process.env.TRUSTED_ENDPOINT];
 
 if (process.env.NODE_ENV !== "production") {
@@ -35,21 +28,27 @@ app.use(
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
-    maxAge: 86400 // 24 hours
+    maxAge: 86400, // 24 hours
   })
 );
 
+// Note: No compression middleware needed.
+// Vercel applies gzip/brotli at the CDN edge (faster & free).
+
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
+app.use(express.json({ limit: "5mb" }));
 
-
+// ── Health check ──
 app.get("/", (req, res) => {
   res.json({ message: "Server started" });
 });
 
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", uptime: process.uptime() });
+});
+
 app.use("/api", router);
 
-app.listen(process.env.PORT, () => {
-  console.log("Express server started.");
-});
+// ── Export the app (Vercel imports this, no listen() needed) ──
+export default app;

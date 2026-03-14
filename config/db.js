@@ -10,7 +10,7 @@ if (!MONGODB_URI) {
   throw new Error("MONGODB_URI is not defined in environment variables");
 }
 
-// global cache for serverless
+// global cache for serverless / clustering
 let cached = globalThis.mongoose;
 
 if (!cached) {
@@ -32,6 +32,10 @@ async function connectDB() {
       const options = {
         bufferCommands: false,
         dbName: DB_NAME,
+        maxPoolSize: 50,   // max connections per worker
+        minPoolSize: 5,    // keep at least 5 connections warm
+        socketTimeoutMS: 30000,  // close idle sockets after 30s
+        serverSelectionTimeoutMS: 10000,  // fail fast if DB unreachable
       };
 
       cached.promise = mongoose.connect(MONGODB_URI, options);
