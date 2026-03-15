@@ -389,7 +389,9 @@ router.delete("/account", authMiddleware, async (req, res) => {
 
     // 5. Purge ALL Redis caches for this user
     await deleteCache(`batch:${userId}`);
-    await deleteCacheByPattern(`auth:*`); // Token cache will expire naturally via TTL, but clean up
+    // We intentionally DO NOT use deleteCacheByPattern("auth:*") here 
+    // because it would delete the tokens of ALL OTHER users too. 
+    // The deleted user's token will naturally expire after 5 minutes via TTL.
 
     return res.json({
       success: true,
